@@ -61,7 +61,7 @@ func PathExists(path *string) (bool, error) {
 	}
 	if os.IsNotExist(err) {
 		// 创建文件夹
-		err := os.Mkdir(*path, os.ModePerm)
+		err := os.MkdirAll(*path, os.ModePerm)
 		if err != nil {
 			log.Printf("mkdir failed![%v]\n", err)
 		} else {
