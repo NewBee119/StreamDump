@@ -14,7 +14,7 @@ StreamDump 用于将 pcap 或网卡中的流量根据四元组进行切割，每
 
 
 ## 编译
-`go build -o streamdump main.go`
+`go build -o streamdump streamdump.go`
 
 ## 使用流程
 

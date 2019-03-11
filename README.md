@@ -14,7 +14,7 @@ StreamDump is used to cut traffic packets from a pcap format file or network int
 
 
 ## How to Build
-`go build -o streamdump main.go`
+`go build -o streamdump streamdump.go`
 
 ## Usage
 1. Compile, or download the compiled executable [file](https://github.com/scu-igroup/StramDump/releases).
