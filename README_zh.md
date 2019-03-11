@@ -14,7 +14,10 @@ StreamDump 用于将 pcap 或网卡中的流量根据四元组进行切割，每
 
 
 ## 编译
-`go build -o streamdump streamdump.go`
+```bash
+>go get github.com/google/gopacket
+>go build -o streamdump streamdump.go
+```
 
 ## 使用流程
 
@@ -49,7 +52,7 @@ Options:
 #从默认网卡（en0）捕获 Google.com 对应 ip 以及 80 端口的 tcp 流量: 
 >./streamdump -f 'tcp and port 80' -s '/home/stream/' -d 'google.com'
 #从 pcap 文件中过滤 Google.com 对应 ip 以及 443 端口的 tcp 流量：
->./streamdump -f 'tcp and port 443' -s '/home/stream/' -d 'google.com'
+>./streamdump -r './file.pcap' -f 'tcp and port 443' -s '/home/stream/' -d 'google.com'
 #从自定义网卡（如：eth0）捕获 Google.com 对应 ip 以及 443 端口的 tcp 流量：
 >./streamdump -i eth0 -f 'tcp and port 443' -s '/home/stream/' -d 'google.com'
 #从自定义网卡捕获特定 ip 以及 443 端口的 tcp 流量，将双向数据都保存在一个 pcap 文件中：

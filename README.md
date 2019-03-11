@@ -14,7 +14,10 @@ StreamDump is used to cut traffic packets from a pcap format file or network int
 
 
 ## How to Build
-`go build -o streamdump streamdump.go`
+```bash
+>go get github.com/google/gopacket
+>go build -o streamdump streamdump.go
+```
 
 ## Usage
 1. Compile, or download the compiled executable [file](https://github.com/scu-igroup/StramDump/releases).
@@ -49,7 +52,7 @@ Options:
 >./streamdump -f 'tcp and port 80' -s '/home/stream/' -d 'google.com'
 
 #Filter the TCP traffic for IP of 'google.com' IP and port 443 from the pcap file：
->./streamdump -f 'tcp and port 443' -s '/home/stream/' -d 'google.com'
+>./streamdump -r './file.pcap' -f 'tcp and port 443' -s '/home/stream/' -d 'google.com'
 
 #Capture the TCP traffic for IP of 'google.com' and port 443 from a custom network interface such as eth0：
 >./streamdump -i eth0 -f 'tcp and port 443' -s '/home/stream/' -d 'google.com'
