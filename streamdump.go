@@ -75,7 +75,7 @@ func PathExists(path *string) (bool, error) {
 }
 
 var (
-	iface         = flag.String("i", "en0", "Interface to get packets from")
+	iface         = flag.String("i", "", "Interface to get packets from")
 	fpath         = flag.String("s", "./pcap_s", "Filepath to save pcap files")
 	fname         = flag.String("r", "", "Filename to read from, overrides -i")
 	snaplen       = flag.Int("l", 1600, "SnapLen for pcap packet capture")
