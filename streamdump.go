@@ -44,8 +44,12 @@ type tcpStream struct {
 func (sp *streamPool) FlushOlderThan(t time.Time) (flushed int) {
 	for k, ts := range sp.poolmap {
 		if ts.lastseen.Before(t) {
+			if file, _ := ts.f.Stat(); file == nil {
+				delete(sp.poolmap, k)
+				continue
+			}
 			if err := ts.f.Close(); err != nil {
-				log.Fatal(err)
+				log.Panic(err)
 			}
 			delete(sp.poolmap, k)
 			flushed++
