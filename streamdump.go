@@ -22,7 +22,7 @@ import (
 	"time"
 )
 
-var version = "0.0.1"
+var version = "0.0.2"
 
 type assemblerFactory struct {
 }
@@ -140,141 +140,74 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if *bidirection {
-		// Read in packets.
-		packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
-		packets := packetSource.Packets()
-		ticker := time.Tick(time.Minute)
-		for {
-			select {
-			case packet := <-packets:
-				// A nil packet indicates the end of a pcap file.
-				if packet == nil {
-					return
-				}
-				if *logAllPackets {
-					log.Println(packet)
-				}
-				if packet.NetworkLayer() == nil || packet.TransportLayer() == nil || packet.TransportLayer().LayerType() != layers.LayerTypeTCP {
-					log.Println("Unusable packet")
-					continue
-				}
-
-				netlayer := packet.NetworkLayer()
-				tcp := packet.TransportLayer().(*layers.TCP)
-
-				if tcp != nil {
-					if ip != nil {
-						dst := netlayer.NetworkFlow().Dst().String()
-						match := false
-						for _, i := range ip {
-							if dst == i {
-								match = true
-								break
-							}
-						}
-						if !match {
-							continue
-						}
-					}
-					positive := fmt.Sprintf("%s[%s]-%s[%s]", netlayer.NetworkFlow().Src().String(), tcp.SrcPort.String(), netlayer.NetworkFlow().Dst().String(), tcp.DstPort.String())
-					negative := fmt.Sprintf("%s[%s]-%s[%s]", netlayer.NetworkFlow().Dst().String(), tcp.DstPort.String(), netlayer.NetworkFlow().Src().String(), tcp.SrcPort.String())
-					if ts, ok := assembler.poolmap[positive]; ok {
-						if err := ts.w.WritePacket(packet.Metadata().CaptureInfo, packet.Data()); err != nil {
-							log.Fatal(err)
-						}
-						ts.lastseen = time.Now()
-					} else if ts, ok := assembler.poolmap[negative]; ok {
-						if err := ts.w.WritePacket(packet.Metadata().CaptureInfo, packet.Data()); err != nil {
-							log.Fatal(err)
-						}
-						ts.lastseen = time.Now()
-					} else {
-						// Open output pcap file and write header
-						f, _ := os.Create(path.Join((*fpath), fmt.Sprintf("%s.pcap", positive)))
-						w := pcapgo.NewWriter(f)
-						err := w.WriteFileHeader(uint32(*snaplen), layers.LinkTypeEthernet)
-						if err != nil {
-							continue
-						}
-						if err := w.WritePacket(packet.Metadata().CaptureInfo, packet.Data()); err != nil {
-							log.Fatal(err)
-						}
-						tcpstream := &tcpStream{f: f, w: w, lastseen: time.Now()}
-						assembler.poolmap[positive] = tcpstream
-					}
-				}
-			case <-ticker:
-				// Every minute, flush connections that haven't seen activity in the past 2 minutes.
-				assembler.FlushOlderThan(time.Now().Add(time.Minute * -2))
+	// Read in packets.
+	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
+	packets := packetSource.Packets()
+	ticker := time.Tick(time.Minute)
+	for {
+		select {
+		case packet := <-packets:
+			// A nil packet indicates the end of a pcap file.
+			if packet == nil {
+				return
 			}
-		}
-	} else {
-
-		// Read in packets.
-		packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
-		packets := packetSource.Packets()
-		ticker := time.Tick(time.Minute)
-		for {
-			select {
-			case packet := <-packets:
-				// A nil packet indicates the end of a pcap file.
-				if packet == nil {
-					return
-				}
-				if *logAllPackets {
-					log.Println(packet)
-				}
-				if packet.NetworkLayer() == nil || packet.TransportLayer() == nil || packet.TransportLayer().LayerType() != layers.LayerTypeTCP {
-					log.Println("Unusable packet")
-					continue
-				}
-
-				netlayer := packet.NetworkLayer()
-				tcp := packet.TransportLayer().(*layers.TCP)
-
-				if tcp != nil {
-					if ip != nil {
-						dst := netlayer.NetworkFlow().Dst().String()
-						match := false
-						for _, i := range ip {
-							if dst == i {
-								match = true
-								break
-							}
-						}
-						if !match {
-							continue
-						}
-					}
-
-					k := fmt.Sprintf("%s[%s]-%s[%s]", netlayer.NetworkFlow().Src().String(), tcp.SrcPort.String(), netlayer.NetworkFlow().Dst().String(), tcp.DstPort.String())
-					ts, ok := assembler.poolmap[k]
-					if ok {
-						if err := ts.w.WritePacket(packet.Metadata().CaptureInfo, packet.Data()); err != nil {
-							log.Fatal(err)
-						}
-						ts.lastseen = time.Now()
-					} else {
-						// Open output pcap file and write header
-						f, _ := os.Create(path.Join((*fpath), fmt.Sprintf("%s.pcap", k)))
-						w := pcapgo.NewWriter(f)
-						err := w.WriteFileHeader(uint32(*snaplen), layers.LinkTypeEthernet)
-						if err != nil {
-							continue
-						}
-						if err := w.WritePacket(packet.Metadata().CaptureInfo, packet.Data()); err != nil {
-							log.Fatal(err)
-						}
-						tcpstream := &tcpStream{f: f, w: w, lastseen: time.Now()}
-						assembler.poolmap[k] = tcpstream
-					}
-				}
-
-			case <-ticker:
-				// Every minute, flush connections that haven't seen activity in the past 2 minutes.
-				assembler.FlushOlderThan(time.Now().Add(time.Minute * -2))
+			if *logAllPackets {
+				log.Println(packet)
 			}
+			if packet.NetworkLayer() == nil || packet.TransportLayer() == nil || packet.TransportLayer().LayerType() != layers.LayerTypeTCP {
+				log.Println("Unusable packet")
+				continue
+			}
+
+			netlayer := packet.NetworkLayer()
+			tcp := packet.TransportLayer().(*layers.TCP)
+
+			if tcp != nil {
+				if ip != nil {
+					dst := netlayer.NetworkFlow().Dst().String()
+					match := false
+					for _, i := range ip {
+						if dst == i {
+							match = true
+							break
+						}
+					}
+					if !match {
+						continue
+					}
+				}
+				quad := fmt.Sprintf("%s[%s]-%s[%s]", netlayer.NetworkFlow().Src().String(), tcp.SrcPort.String(), netlayer.NetworkFlow().Dst().String(), tcp.DstPort.String())
+				if ts, ok := assembler.poolmap[quad]; ok {
+					if err := ts.w.WritePacket(packet.Metadata().CaptureInfo, packet.Data()); err != nil {
+						log.Fatal(err)
+					}
+					ts.lastseen = time.Now()
+				} else {
+					// Open output pcap file and write header
+					filename := fmt.Sprintf("%s-%s.pcap", quad, time.Now().Format("2006-01-02 15:04:05"))
+					f, _ := os.Create(path.Join((*fpath), filename))
+					w := pcapgo.NewWriter(f)
+					err := w.WriteFileHeader(uint32(*snaplen), layers.LinkTypeEthernet)
+					if err != nil {
+						continue
+					}
+					if err := w.WritePacket(packet.Metadata().CaptureInfo, packet.Data()); err != nil {
+						log.Fatal(err)
+					}
+					tcpstream := &tcpStream{f: f, w: w, lastseen: time.Now()}
+
+					assembler.poolmap[quad] = tcpstream
+
+					if *bidirection {
+						quadNegative := fmt.Sprintf("%s[%s]-%s[%s]", netlayer.NetworkFlow().Dst().String(), tcp.DstPort.String(), netlayer.NetworkFlow().Src().String(), tcp.SrcPort.String())
+						assembler.poolmap[quadNegative] = tcpstream
+					}
+
+				}
+			}
+		case <-ticker:
+			// Every minute, flush connections that haven't seen activity in the past 2 minutes.
+			assembler.FlushOlderThan(time.Now().Add(time.Minute * -2))
 		}
 	}
 }
